@@ -12,10 +12,8 @@ import keras
 env = gym.make('CartPole-v1')
 env.reset()
 
-size = 200000
 
 goal_steps = 500
-score_requirement = 20
 intial_games = 10000
 
 tensorboard_callback = keras.callbacks.TensorBoard(log_dir="./log.tf")
@@ -35,71 +33,35 @@ def play_a_random_game_first():
 
     env.reset()
 
-
-def model_data_preparation():
+def gatherData(count, minimumScore):
     dataX = []
     dataY = []
-    accepted_scores = []
-    for game_index in range(intial_games):  # 10000
-        score = 0
-        game_memory = []
-        previous_observation = []
-        for step_index in range(goal_steps):  # 500
-            action = random.randrange(0, 2)
-            observation, reward, done, info = env.step(action)
-
-            if len(previous_observation) > 0:
-                game_memory.append([previous_observation, action])
-
-            previous_observation = observation
-            score += reward
-            if done:
-                break
-
-        if score >= score_requirement:
-            accepted_scores.append(score)
-            for data in game_memory:
-                if data[1] == 1:
-                    output = [0, 1]
-                elif data[1] == 0:
-                    output = [1, 0]
-                dataX.append(data[0])
-                dataY.append(output)
-
-        env.reset()
-    return np.array(dataX), np.array(dataY)
-
-
-def gatherData():
-    dataX = []
-    dataY = []
-    while len(dataX) < size:
+    while len(dataX) < count:
         print(len(dataX))
         currX = []
         currY = []
         currScore = 0
+        env.reset()
+        observation = []
         done = False
-        while currScore < score_requirement or not done:
-
+        while not done:
             action = random.randrange(0, 2)
+            if observation != []:
+                currX.append(observation)
+                arr = [0.0, 0.0]
+                arr[action] = 1.0
+                currY.append(arr)
             observation, reward, done, info = env.step(action)
             # env.render()
 
             currScore += reward
-            currX.append(observation)
-            arr = [0.0, 0.0]
-            arr[action] = 1.0
-            currY.append(arr)
 
-            if done:
-                env.reset()
 
-        if currScore >= score_requirement:
+
+        if currScore >= minimumScore:
             dataX += currX
             dataY += currY
-            env.reset()
 
-    print("end")
     return np.array(dataX), np.array(dataY)
 
 
@@ -131,7 +93,7 @@ def playAfterTrain():
 
 
 # play_a_random_game_first()
-dataX, dataY = model_data_preparation()
+dataX, dataY = gatherData(200000, 40)
 model = createModel()
 model.summary()
 
